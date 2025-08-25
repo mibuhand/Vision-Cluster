@@ -1,0 +1,26 @@
+[project]
+name = "vision-cluster"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "hf-xet>=1.1.8",
+    "torch>=2.8.0",
+    "torchvision>=0.23.0",
+    "transformers",
+]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+transformers = { git = "https://github.com/huggingface/transformers.git" }
+
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
