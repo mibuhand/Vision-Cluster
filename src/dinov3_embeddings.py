@@ -1,13 +1,13 @@
 """
 DINOv3 Image Embedding Extractor
 
-This script processes all images in the data/processed directory and extracts
+This script processes all JPEG images in the data/processed directory and extracts
 CLS token embeddings using Facebook's DINOv3 model. The embeddings are saved
 as a compressed NumPy archive for downstream tasks like clustering or similarity search.
 
 Features:
 - Batch processing for efficient GPU utilization
-- Support for multiple image formats (jpg, jpeg, png, bmp, tiff)
+- Support for JPEG image formats (.jpg, .jpeg)
 - Automatic GPU detection and usage
 - Compressed output format (.npz)
 """
@@ -17,66 +17,70 @@ from transformers import AutoImageProcessor, AutoModel
 from transformers.image_utils import load_image
 from pathlib import Path
 import numpy as np
-import glob
 import logging
 from typing import List, Tuple
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Directory setup
-proj_dir = Path(__file__).resolve().parent.parent
-processed_dir = proj_dir / 'data' / 'processed'
 
 def get_image_files(directory: Path) -> List[Path]:
     """
-    Find all image files in the specified directory.
+    Find all JPEG image files in the specified directory.
     
     Args:
         directory: Path to directory containing images
         
     Returns:
-        Sorted list of image file paths
+        Sorted list of JPEG image file paths
     """
-    image_patterns = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff']
-    image_files = set()
+    valid_extensions = {'.jpg', '.jpeg'}
     
-    for pattern in image_patterns:
-        # Search for both lowercase and uppercase extensions
-        image_files.update(glob.glob(str(directory / pattern)))
-        image_files.update(glob.glob(str(directory / pattern.upper())))
+    image_files = []
+    for file_path in directory.iterdir():
+        if file_path.is_file() and file_path.suffix.lower() in valid_extensions:
+            image_files.append(file_path)
     
-    return [Path(f) for f in sorted(image_files)]
+    return sorted(image_files)
 
 # Model configuration
 MODEL_NAME = "facebook/dinov3-vit7b16-pretrain-lvd1689m"  # Large DINOv3 model
-CACHE_DIR = str(proj_dir / '.huggingface')  # Local cache directory
-TRUST_REMOTE_CODE = False  # Security setting
-HF_TOKEN = ''  # Hugging Face token (empty for public models)
 MAX_BATCH_SIZE = 32  # Maximum batch size for inference to prevent OOM
 
-def load_dinov3_model() -> Tuple[AutoImageProcessor, AutoModel, torch.device]:
+def load_dinov3_model(cache_dir: str = None) -> Tuple[AutoImageProcessor, AutoModel, torch.device]:
     """
     Load DINOv3 model and processor, move model to appropriate device.
     
+    Args:
+        cache_dir: Directory to cache model files
+        
     Returns:
         Tuple of (processor, model, device)
     """
+    trust_remote_code = False  # DINOv3 doesn't need custom code
+    local_files_only = True
+    
+    # Set up loading parameters
+    processor_kwargs = {
+        'trust_remote_code': trust_remote_code,
+        'local_files_only': local_files_only,
+    }
+    model_kwargs = {
+        'trust_remote_code': trust_remote_code,
+        'local_files_only': local_files_only,
+    }
+    
+    if cache_dir:
+        processor_kwargs['cache_dir'] = cache_dir
+        model_kwargs['cache_dir'] = cache_dir
+    
+    logging.info(f"Loading {MODEL_NAME}...")
+    
     # Load image processor
-    processor = AutoImageProcessor.from_pretrained(
-        MODEL_NAME,
-        cache_dir=CACHE_DIR,
-        trust_remote_code=TRUST_REMOTE_CODE,
-        token=HF_TOKEN,
-    )
+    processor = AutoImageProcessor.from_pretrained(MODEL_NAME, **processor_kwargs)
 
     # Load pre-trained model
-    model = AutoModel.from_pretrained(
-        MODEL_NAME,
-        cache_dir=CACHE_DIR,
-        trust_remote_code=TRUST_REMOTE_CODE,
-        token=HF_TOKEN,
-    )
+    model = AutoModel.from_pretrained(MODEL_NAME, **model_kwargs)
 
     # Move model to GPU if available
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -85,18 +89,19 @@ def load_dinov3_model() -> Tuple[AutoImageProcessor, AutoModel, torch.device]:
     
     return processor, model, device
 
-def extract_embeddings(image_files: List[Path]) -> Tuple[torch.Tensor, List[str]]:
+def extract_embeddings(image_files: List[Path], cache_dir: str = None) -> Tuple[torch.Tensor, List[str]]:
     """
     Extract CLS token embeddings from images using batched inference.
     
     Args:
         image_files: List of paths to image files
+        cache_dir: Directory to cache model files
         
     Returns:
         Tuple of (embeddings tensor, image names list)
     """
     # Load model components
-    processor, model, device = load_dinov3_model()
+    processor, model, device = load_dinov3_model(cache_dir)
     patch_size = model.config.patch_size
 
     all_embeddings = []
@@ -148,6 +153,11 @@ def extract_embeddings(image_files: List[Path]) -> Tuple[torch.Tensor, List[str]
 
 def main():
     """Main execution function."""
+    # Directory setup
+    proj_dir = Path(__file__).resolve().parent.parent
+    processed_dir = proj_dir / 'data' / 'processed'
+    cache_dir = str(proj_dir / '.huggingface')
+    
     # Get all image files
     image_files = get_image_files(processed_dir)
     
@@ -156,7 +166,7 @@ def main():
         return
     
     # Extract embeddings
-    cls_tokens_tensor, image_names = extract_embeddings(image_files)
+    cls_tokens_tensor, image_names = extract_embeddings(image_files, cache_dir)
 
     # Save embeddings and metadata
     output_path = proj_dir / 'data' / 'cls_tokens.npz'
