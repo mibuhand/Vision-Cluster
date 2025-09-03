@@ -1,7 +1,7 @@
 """
 DINOv3 Image Embedding Extractor
 
-This script processes all JPEG images in the data/processed directory and extracts
+This script processes all JPEG images in the media/processed directory and extracts
 CLS token embeddings using Facebook's DINOv3 model. The embeddings are saved
 as a compressed NumPy archive for downstream tasks like clustering or similarity search.
 
@@ -155,7 +155,7 @@ def main():
     """Main execution function."""
     # Directory setup
     proj_dir = Path(__file__).resolve().parent.parent
-    processed_dir = proj_dir / 'data' / 'processed'
+    processed_dir = proj_dir / 'media' / 'processed'
     cache_dir = str(proj_dir / '.huggingface')
     
     # Get all image files

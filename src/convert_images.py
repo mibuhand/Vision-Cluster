@@ -115,8 +115,8 @@ def convert_images_to_jpeg(input_folder, output_folder, max_size=512, quality=85
 def main():
     # Directory setup similar to dinov3_embeddings.py
     proj_dir = Path(__file__).resolve().parent.parent
-    raw_dir = proj_dir / 'data' / 'raw'
-    processed_dir = proj_dir / 'data' / 'processed'
+    raw_dir = proj_dir / 'media' / 'raw'
+    processed_dir = proj_dir / 'media' / 'processed'
     
     parser = argparse.ArgumentParser(description='Convert images to JPEG format using ImageMagick')
     parser.add_argument('input_folder', nargs='?', default=str(raw_dir), 

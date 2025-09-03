@@ -187,7 +187,7 @@ def main():
     
     parser = argparse.ArgumentParser(description='Label images using MiniCPM-V-4.5 model')
     parser.add_argument('--input-dir', type=Path, 
-                        default=proj_dir / 'data' / 'processed',
+                        default=proj_dir / 'media' / 'processed',
                         help='Input directory containing images to label')
     parser.add_argument('--output-file', type=Path,
                         default=proj_dir / 'data' / 'image_labels.json',

@@ -154,7 +154,7 @@ def main():
     """Main execution function."""
     # Directory setup
     proj_dir = Path(__file__).resolve().parent.parent
-    processed_dir = proj_dir / 'data' / 'processed'
+    processed_dir = proj_dir / 'media' / 'processed'
     embeddings_path = proj_dir / 'data' / 'cls_tokens.npz'
     
     parser = argparse.ArgumentParser(description='Cluster images based on DINOv3 embeddings')
@@ -162,7 +162,7 @@ def main():
                         help='Number of clusters (0 = auto-detect optimal)')
     parser.add_argument('--method', choices=['kmeans', 'hierarchical'], default='kmeans',
                         help='Clustering method (default: kmeans)')
-    parser.add_argument('--output-dir', default=str(proj_dir / 'data' / 'clustered'),
+    parser.add_argument('--output-dir', default=str(proj_dir / 'media' / 'clustered'),
                         help='Output directory for clustered images')
     
     args = parser.parse_args()
